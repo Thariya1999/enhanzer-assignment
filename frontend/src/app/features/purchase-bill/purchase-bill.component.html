@@ -1,0 +1,158 @@
+<div class="shell">
+  <header class="topbar">
+    <div>
+      <h1>Purchase Bill</h1>
+      <p>Enter information for the Purchase Bill</p>
+    </div>
+    <div class="user">
+      <span>{{ userEmail() }}</span>
+      <button type="button" (click)="logout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <section class="panel">
+      <h2>Items</h2>
+
+      @if (batchError()) {
+        <div class="alert" role="alert">
+          {{ batchError() }} <button type="button" class="link" (click)="loadBatches()">Retry</button>
+        </div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="add()" novalidate class="grid">
+        <app-autocomplete
+          class="c-item"
+          inputId="item"
+          label="Item"
+          placeholder="Search item"
+          [options]="itemOptions"
+          [control]="form.controls.item"
+        />
+
+        <div class="fld" [class.invalid]="invalid('batch')">
+          <label for="batch">Batch<span class="req">*</span></label>
+          <select id="batch" formControlName="batch">
+            <option value="" disabled>{{ loadingBatches() ? 'Loading...' : 'Select batch' }}</option>
+            @for (b of batches(); track b.locationCode) {
+              <option [value]="b.locationName">{{ b.locationName }}</option>
+            }
+          </select>
+          @if (invalid('batch')) { <p class="err">Batch is required</p> }
+        </div>
+
+        <div class="fld" [class.invalid]="invalid('standardCost')">
+          <label for="cost">Standard Cost<span class="req">*</span></label>
+          <input id="cost" type="number" min="0" step="0.01" placeholder="0.00" formControlName="standardCost" />
+          @if (invalid('standardCost')) { <p class="err">Enter a cost of 0 or more</p> }
+        </div>
+
+        <div class="fld" [class.invalid]="invalid('standardPrice')">
+          <label for="price">Standard Price<span class="req">*</span></label>
+          <input id="price" type="number" min="0" step="0.01" placeholder="0.00" formControlName="standardPrice" />
+          @if (invalid('standardPrice')) { <p class="err">Enter a price of 0 or more</p> }
+        </div>
+
+        <div class="fld ro">
+          <label for="margin">Margin</label>
+          <input id="margin" type="text" readonly [value]="margin() | number: '1.2-2'" />
+        </div>
+
+        <div class="fld" [class.invalid]="invalid('qty')">
+          <label for="qty">Qty<span class="req">*</span></label>
+          <input id="qty" type="number" min="1" step="1" placeholder="0" formControlName="qty" />
+          @if (invalid('qty')) { <p class="err">Qty must be at least 1</p> }
+        </div>
+
+        <div class="fld" [class.invalid]="invalid('freeQty')">
+          <label for="free">Free Qty</label>
+          <input id="free" type="number" min="0" step="1" formControlName="freeQty" />
+          @if (invalid('freeQty')) { <p class="err">Cannot be negative</p> }
+        </div>
+
+        <div class="fld" [class.invalid]="invalid('discount')">
+          <label for="disc">Discount %</label>
+          <input id="disc" type="number" min="0" max="100" step="0.01" formControlName="discount" />
+          @if (invalid('discount')) { <p class="err">Enter 0 to 100</p> }
+        </div>
+
+        <div class="fld ro">
+          <label for="tc">Total Cost</label>
+          <input id="tc" type="text" readonly [value]="totalCost() | number: '1.2-2'" />
+        </div>
+
+        <div class="fld ro">
+          <label for="ts">Total Selling</label>
+          <input id="ts" type="text" readonly [value]="totalSelling() | number: '1.2-2'" />
+        </div>
+
+        <div class="fld act">
+          <button type="submit" class="add">Add +</button>
+        </div>
+      </form>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th><th>Batch</th>
+              <th class="n">Standard Cost</th><th class="n">Standard Price</th><th class="n">Margin</th>
+              <th class="n">Qty</th><th class="n">Free Qty</th><th class="n">Discount %</th>
+              <th class="n">Total Cost</th><th class="n">Total Selling</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of rows(); track $index) {
+              <tr>
+                <td>{{ r.item }}</td>
+                <td>{{ r.batch }}</td>
+                <td class="n">{{ r.standardCost | number: '1.2-2' }}</td>
+                <td class="n">{{ r.standardPrice | number: '1.2-2' }}</td>
+                <td class="n">{{ r.margin | number: '1.2-2' }}</td>
+                <td class="n">{{ r.qty }}</td>
+                <td class="n">{{ r.freeQty }}</td>
+                <td class="n">{{ r.discountPercent | number: '1.2-2' }}</td>
+                <td class="n">{{ r.totalCost | number: '1.2-2' }}</td>
+                <td class="n">{{ r.totalSelling | number: '1.2-2' }}</td>
+                <td><button type="button" class="link" (click)="remove($index)" aria-label="Remove row">Remove</button></td>
+              </tr>
+            } @empty {
+              <tr><td colspan="11" class="empty">No items added yet.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (saveError()) { <div class="alert" role="alert">{{ saveError() }}</div> }
+      @if (saveSuccess()) { <div class="ok" role="status">{{ saveSuccess() }}</div> }
+
+      <div class="footer">
+        <button type="button" class="save" [disabled]="!rows().length || saving()" (click)="save()">
+          @if (saving()) { <app-spinner /> Saving... } @else { Save Bill }
+        </button>
+      </div>
+    </section>
+
+    <aside class="panel summary">
+      <h2>Summary</h2>
+
+      <h3>Item Summary</h3>
+      <dl>
+        <dt>Total Items</dt><dd>{{ totalItems() }}</dd>
+        <dt>Total Qty</dt><dd>{{ totalQty() }}</dd>
+      </dl>
+
+      <h3>Financial Summary</h3>
+      <dl>
+        <dt>Gross Total</dt><dd>{{ grossTotal() | number: '1.2-2' }}</dd>
+        <dt>Total Discounts</dt><dd>{{ totalDiscounts() | number: '1.2-2' }}</dd>
+        <dt>Total Selling</dt><dd>{{ netSelling() | number: '1.2-2' }}</dd>
+      </dl>
+
+      <div class="net">
+        <span>Net Total (Cost)</span>
+        <strong>{{ netCost() | number: '1.2-2' }}</strong>
+      </div>
+    </aside>
+  </div>
+</div>
