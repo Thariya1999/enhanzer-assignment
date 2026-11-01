@@ -1,0 +1,33 @@
+<div class="ac" [class.invalid]="showError">
+  <label [for]="inputId()">{{ label() }}<span class="req">*</span></label>
+  <input
+    [id]="inputId()"
+    type="text"
+    autocomplete="off"
+    role="combobox"
+    [attr.aria-expanded]="open()"
+    [placeholder]="placeholder()"
+    [formControl]="control()"
+    (focus)="onFocus()"
+    (input)="onInput($event)"
+    (blur)="onBlur()"
+    (keydown)="onKeydown($event)"
+  />
+  @if (open() && filtered().length) {
+    <ul class="menu" role="listbox">
+      @for (opt of filtered(); track opt; let i = $index) {
+        <li
+          role="option"
+          [class.active]="i === activeIndex()"
+          [attr.aria-selected]="i === activeIndex()"
+          (mousedown)="$event.preventDefault(); select(opt)"
+        >
+          {{ opt }}
+        </li>
+      }
+    </ul>
+  }
+  @if (showError) {
+    <p class="err">{{ errorText }}</p>
+  }
+</div>
